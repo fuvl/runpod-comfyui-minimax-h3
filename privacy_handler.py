@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 
@@ -23,21 +24,44 @@ def clear_transient_files():
                 item.unlink(missing_ok=True)
 
 
+def normalize_save_video_codec(value):
+    if isinstance(value, dict):
+        if value.get("class_type") == "SaveVideo":
+            inputs = value.setdefault("inputs", {})
+            codec = inputs.get("codec")
+            if codec is None:
+                inputs["codec"] = {"codec": "h264"}
+            elif isinstance(codec, str):
+                inputs["codec"] = {"codec": codec}
+
+        for child in value.values():
+            normalize_save_video_codec(child)
+    elif isinstance(value, list):
+        for child in value:
+            normalize_save_video_codec(child)
+
+
 def normalize_workflow(job):
-    workflow = job.get("input", {}).get("workflow", {})
-    if not isinstance(workflow, dict):
-        return
+    job_input = job.get("input")
+    if isinstance(job_input, str):
+        try:
+            job_input = json.loads(job_input)
+        except json.JSONDecodeError:
+            return
+        job["input"] = job_input
 
-    for node in workflow.values():
-        if not isinstance(node, dict) or node.get("class_type") != "SaveVideo":
-            continue
+    normalize_save_video_codec(job_input)
 
-        inputs = node.setdefault("inputs", {})
-        codec = inputs.get("codec")
-        if codec is None:
-            inputs["codec"] = {"codec": "h264"}
-        elif isinstance(codec, str):
-            inputs["codec"] = {"codec": codec}
+
+base_queue_workflow = handler_base.queue_workflow
+
+
+def queue_normalized_workflow(workflow, *args, **kwargs):
+    normalize_save_video_codec(workflow)
+    return base_queue_workflow(workflow, *args, **kwargs)
+
+
+handler_base.queue_workflow = queue_normalized_workflow
 
 
 def handler(job):
