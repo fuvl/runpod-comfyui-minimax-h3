@@ -3,6 +3,13 @@ FROM runpod/worker-comfyui:5.8.6-base
 ARG COMFYUI_COMMIT=2eb609766a749e3104485979615e062e401bab97
 ARG KJNODES_COMMIT=35e5956193769d18a13136cdedb73a36a05c73e6
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CC=/usr/bin/gcc \
+    CXX=/usr/bin/g++
+
 RUN cp /comfyui/extra_model_paths.yaml /tmp/extra_model_paths.yaml \
     && rm -rf /comfyui \
     && git clone https://github.com/Comfy-Org/ComfyUI.git /comfyui \
