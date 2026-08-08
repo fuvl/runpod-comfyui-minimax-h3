@@ -17,6 +17,8 @@ RUN cp /comfyui/extra_model_paths.yaml /tmp/extra_model_paths.yaml \
     && mv /tmp/extra_model_paths.yaml /comfyui/extra_model_paths.yaml \
     && sed -i 's|clip: models/clip/|clip: models/text_encoders/|' /comfyui/extra_model_paths.yaml \
     && sed -i 's|unet: models/unet/|unet: models/diffusion_models/|' /comfyui/extra_model_paths.yaml \
+    && sed -i 's|codec: io.DynamicCombo.Type) -> io.NodeOutput:|codec: io.DynamicCombo.Type = {"codec": "h264"}) -> io.NodeOutput:|' /comfyui/comfy_extras/nodes_video.py \
+    && grep -Fq 'codec: io.DynamicCombo.Type = {"codec": "h264"}' /comfyui/comfy_extras/nodes_video.py \
     && uv pip install -r /comfyui/requirements.txt \
     && rm -rf /comfyui/.git /root/.cache
 
