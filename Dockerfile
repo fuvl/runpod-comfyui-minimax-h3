@@ -33,7 +33,7 @@ RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git /comfyui/custom_nodes
         "torchaudio==2.11.0" \
         --index-url https://download.pytorch.org/whl/cu130 \
     && uv pip install "https://github.com/Comfy-Org/wheels/releases/download/sageattention-latest/sageattention-2.2.0%2Bcu130torch2.11-cp312-cp312-manylinux_2_34_x86_64.manylinux_2_35_x86_64.whl" \
-    && sed -i 's|python -u /comfyui/main.py |python -u /comfyui/main.py --highvram |g' /start.sh \
+    && sed -i 's|python -u /comfyui/main.py |python -u /comfyui/main.py --highvram --cache-classic |g' /start.sh \
     && rm -rf /comfyui/custom_nodes/ComfyUI-KJNodes/.git /root/.cache
 
 RUN mv /handler.py /handler_base.py
