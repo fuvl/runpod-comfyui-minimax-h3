@@ -23,9 +23,27 @@ def clear_transient_files():
                 item.unlink(missing_ok=True)
 
 
+def normalize_workflow(job):
+    workflow = job.get("input", {}).get("workflow", {})
+    if not isinstance(workflow, dict):
+        return
+
+    for node in workflow.values():
+        if not isinstance(node, dict) or node.get("class_type") != "SaveVideo":
+            continue
+
+        inputs = node.setdefault("inputs", {})
+        codec = inputs.get("codec")
+        if codec is None:
+            inputs["codec"] = {"codec": "h264"}
+        elif isinstance(codec, str):
+            inputs["codec"] = {"codec": codec}
+
+
 def handler(job):
     clear_transient_files()
     try:
+        normalize_workflow(job)
         return handler_base.handler(job)
     finally:
         clear_transient_files()
@@ -33,4 +51,3 @@ def handler(job):
 
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})
-
