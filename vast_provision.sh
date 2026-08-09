@@ -53,6 +53,7 @@ uv pip install --no-cache-dir \
 sed -i 's|codec: io.DynamicCombo.Type) -> io.NodeOutput:|codec: io.DynamicCombo.Type = {"codec": "h264"}) -> io.NodeOutput:|' "$COMFYUI_DIR/comfy_extras/nodes_video.py"
 
 log "Downloading REF2VA models with the Hugging Face Xet parallel downloader"
+find "$MODEL_DIR" -type f -name '*.part' -delete
 export HF_XET_HIGH_PERFORMANCE=1
 export HF_HUB_DOWNLOAD_TIMEOUT=1800
 hf download Comfy-Org/MiniMax-H3 \
