@@ -13,32 +13,18 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
 }
 
-download_model() {
+verify_model() {
     local relative_path="$1"
     local expected_size="$2"
     local output="$MODEL_DIR/$relative_path"
-    local partial="$output.part"
-    local url="https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/$relative_path"
-
-    mkdir -p "$(dirname "$output")"
-    if [[ -f "$output" ]] && [[ "$(stat -c %s "$output")" == "$expected_size" ]]; then
-        log "Already present: $relative_path"
-        return 0
-    fi
-
-    rm -f "$output"
-    log "Downloading $relative_path"
-    curl --fail --location --retry 8 --retry-all-errors --continue-at - \
-        --output "$partial" "$url"
 
     local actual_size
-    actual_size="$(stat -c %s "$partial")"
+    actual_size="$(stat -c %s "$output")"
     if [[ "$actual_size" != "$expected_size" ]]; then
         log "Wrong size for $relative_path: expected $expected_size, got $actual_size"
         return 1
     fi
-    mv "$partial" "$output"
-    log "Downloaded $relative_path"
+    log "Verified $relative_path"
 }
 
 log "Pinning ComfyUI and MiniMax dependencies"
@@ -66,25 +52,21 @@ uv pip install --no-cache-dir \
 
 sed -i 's|codec: io.DynamicCombo.Type) -> io.NodeOutput:|codec: io.DynamicCombo.Type = {"codec": "h264"}) -> io.NodeOutput:|' "$COMFYUI_DIR/comfy_extras/nodes_video.py"
 
-download_model "diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors" 20958205608 &
-pid_ref2va=$!
-download_model "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" 15687142551 &
-pid_text=$!
-download_model "vae/minimax_h3_video_vae_fp16.safetensors" 5207808496 &
-pid_video_vae=$!
-download_model "vae/minimax_h3_audio_vae_fp32.safetensors" 605254808 &
-pid_audio_vae=$!
+log "Downloading REF2VA models with the Hugging Face Xet parallel downloader"
+export HF_XET_HIGH_PERFORMANCE=1
+export HF_HUB_DOWNLOAD_TIMEOUT=1800
+hf download Comfy-Org/MiniMax-H3 \
+    diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors \
+    text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors \
+    vae/minimax_h3_video_vae_fp16.safetensors \
+    vae/minimax_h3_audio_vae_fp32.safetensors \
+    --local-dir "$MODEL_DIR" \
+    --max-workers 4
 
-failed=0
-for pid in "$pid_ref2va" "$pid_text" "$pid_video_vae" "$pid_audio_vae"; do
-    if ! wait "$pid"; then
-        failed=1
-    fi
-done
-if [[ "$failed" != 0 ]]; then
-    log "One or more model downloads failed"
-    exit 1
-fi
+verify_model "diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors" 20958205608
+verify_model "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" 15687142551
+verify_model "vae/minimax_h3_video_vae_fp16.safetensors" 5207808496
+verify_model "vae/minimax_h3_audio_vae_fp32.safetensors" 605254808
 
 rm -rf /root/.cache/huggingface /root/.cache/uv
 log "MiniMax H3 provisioning complete"
