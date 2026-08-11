@@ -41,5 +41,8 @@ RUN git clone https://github.com/scottmudge/ComfyUI_MinimaxH3HybridLoader.git /c
     && git -C /comfyui/custom_nodes/ComfyUI_MinimaxH3HybridLoader checkout "${HYBRID_LOADER_COMMIT}" \
     && rm -rf /comfyui/custom_nodes/ComfyUI_MinimaxH3HybridLoader/.git
 
+RUN uv pip install "cryptography>=42" \
+    && rm -rf /root/.cache
+
 RUN mv /handler.py /handler_base.py
 COPY privacy_handler.py /handler.py
