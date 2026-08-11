@@ -2,6 +2,7 @@ FROM runpod/worker-comfyui:5.8.6-base
 
 ARG COMFYUI_COMMIT=2eb609766a749e3104485979615e062e401bab97
 ARG KJNODES_COMMIT=35e5956193769d18a13136cdedb73a36a05c73e6
+ARG HYBRID_LOADER_COMMIT=861c7dfcf2289edf9c77177f1185f19b2f187652
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
@@ -35,6 +36,10 @@ RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git /comfyui/custom_nodes
     && uv pip install "https://github.com/Comfy-Org/wheels/releases/download/sageattention-latest/sageattention-2.2.0%2Bcu130torch2.11-cp312-cp312-manylinux_2_34_x86_64.manylinux_2_35_x86_64.whl" \
     && sed -i 's|python -u /comfyui/main.py |python -u /comfyui/main.py --highvram --cache-classic |g' /start.sh \
     && rm -rf /comfyui/custom_nodes/ComfyUI-KJNodes/.git /root/.cache
+
+RUN git clone https://github.com/scottmudge/ComfyUI_MinimaxH3HybridLoader.git /comfyui/custom_nodes/ComfyUI_MinimaxH3HybridLoader \
+    && git -C /comfyui/custom_nodes/ComfyUI_MinimaxH3HybridLoader checkout "${HYBRID_LOADER_COMMIT}" \
+    && rm -rf /comfyui/custom_nodes/ComfyUI_MinimaxH3HybridLoader/.git
 
 RUN mv /handler.py /handler_base.py
 COPY privacy_handler.py /handler.py
